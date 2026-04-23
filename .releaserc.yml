@@ -1,0 +1,36 @@
+branches:
+  - main
+
+tagFormat: v${version}
+
+plugins:
+  - - '@semantic-release/commit-analyzer'
+    - preset: conventionalcommits
+  - - '@semantic-release/release-notes-generator'
+    - preset: conventionalcommits
+  - - '@semantic-release/changelog'
+    - changelogFile: CHANGELOG.md
+  - - '@semantic-release/exec'
+    - prepareCmd: |
+        python - <<'PY'
+        from pathlib import Path
+        import re
+
+        version = '${nextRelease.version}'
+
+        cargo_toml = Path('Cargo.toml')
+        text = cargo_toml.read_text()
+        text = re.sub(r'^version = ".*"$', f'version = "{version}"', text, count=1, flags=re.MULTILINE)
+        cargo_toml.write_text(text)
+        PY
+        cargo check --locked
+  - - '@semantic-release/git'
+    - assets:
+        - CHANGELOG.md
+        - Cargo.toml
+        - Cargo.lock
+      message: |
+        chore(release): ${nextRelease.version}
+
+        ${nextRelease.notes}
+  - '@semantic-release/github'

@@ -1,0 +1,11 @@
+[package]
+name = "vega"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "A rofi-like launcher prototype with a managed fzf backend"
+authors = ["Shreyas Manjunath <mshreyas11@gmail.com>"]
+readme = "README.md"
+
+[dependencies]
+eframe = { version = "0.34.1", default-features = true }
