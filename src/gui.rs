@@ -58,6 +58,7 @@ struct LauncherApp {
     last_query_started: Option<Instant>,
     should_focus_input: bool,
     centered: bool,
+    scroll_to_selected: bool,
 }
 
 impl LauncherApp {
@@ -94,6 +95,7 @@ impl LauncherApp {
             last_query_started: None,
             should_focus_input: true,
             centered: false,
+            scroll_to_selected: false,
         }
     }
 
@@ -199,9 +201,11 @@ impl LauncherApp {
         }
         if ctx.input(|input| input.key_pressed(egui::Key::ArrowDown)) && !self.visible.is_empty() {
             self.selected = (self.selected + 1).min(self.visible.len() - 1);
+            self.scroll_to_selected = true;
         }
         if ctx.input(|input| input.key_pressed(egui::Key::ArrowUp)) && !self.visible.is_empty() {
             self.selected = self.selected.saturating_sub(1);
+            self.scroll_to_selected = true;
         }
         if ctx.input(|input| input.key_pressed(egui::Key::Enter)) {
             self.execute_selected(ctx);
@@ -349,8 +353,9 @@ impl eframe::App for LauncherApp {
                                         }
                                     });
                                 });
-                            if selected {
+                            if selected && self.scroll_to_selected {
                                 row.response.scroll_to_me(None);
+                                self.scroll_to_selected = false;
                             }
                             if row.response.clicked() {
                                 self.selected = index;
