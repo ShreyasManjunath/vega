@@ -3,7 +3,7 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::candidate::{Candidate, CandidateAction};
 
@@ -94,7 +94,12 @@ impl Mode for RunMode {
     fn execute(&self, candidate: &Candidate) -> Result<(), ModeError> {
         match &candidate.action {
             CandidateAction::Exec(argv) if !argv.is_empty() => {
-                Command::new(&argv[0]).args(&argv[1..]).spawn()?;
+                Command::new(&argv[0])
+                    .args(&argv[1..])
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn()?;
                 Ok(())
             }
             _ => Err(ModeError::Execution(format!(
@@ -146,7 +151,12 @@ impl Mode for DesktopMode {
                 if argv.is_empty() {
                     return Err(ModeError::Execution("empty desktop Exec command".into()));
                 }
-                Command::new(&argv[0]).args(&argv[1..]).spawn()?;
+                Command::new(&argv[0])
+                    .args(&argv[1..])
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn()?;
                 Ok(())
             }
             _ => Err(ModeError::Execution(format!(
