@@ -5,6 +5,7 @@ use std::time::Duration;
 use vega::fzf::{FzfBackend, FzfConfig, FzfError, QueryRequest, resolve_binary_path};
 use vega::gui::{LauncherOptions, run_launcher};
 use vega::modes::{DesktopMode, DmenuMode, Mode, RunMode};
+use vega::settings::SettingsManager;
 
 fn main() {
     if let Err(error) = run() {
@@ -14,26 +15,53 @@ fn main() {
 }
 
 fn run() -> Result<(), AppError> {
-    let args = Args::parse(env::args().skip(1))?;
+    let raw_args: Vec<String> = env::args().skip(1).collect();
+    if raw_args
+        .iter()
+        .any(|arg| matches!(arg.as_str(), "-h" | "--help"))
+    {
+        print_help();
+        return Ok(());
+    }
+
+    let settings_manager = SettingsManager::load()?;
+    let settings = settings_manager.current();
+    let args = Args::parse(raw_args.into_iter())?;
     if args.help {
         print_help();
         return Ok(());
     }
 
-    let mode: Box<dyn Mode> = match args.mode.as_str() {
+    let config = &settings.config;
+    let mode_name = args
+        .mode
+        .clone()
+        .unwrap_or_else(|| config.behavior.default_mode.clone());
+    let mode: Box<dyn Mode> = match mode_name.as_str() {
         "dmenu" => Box::new(DmenuMode::new(read_stdin()?)),
         "cmd" | "run" => Box::new(RunMode::new()),
         "apps" | "drun" => Box::new(DesktopMode::new()),
         other => return Err(AppError::Usage(format!("unsupported mode `{other}`"))),
     };
 
+    let limit = args.limit.unwrap_or(config.runtime.limit);
+    let debug = args.debug || config.runtime.debug;
+    let timeout = args
+        .timeout
+        .unwrap_or_else(|| Duration::from_millis(config.runtime.timeout_ms));
+    let fzf_binary = args
+        .fzf_binary
+        .unwrap_or_else(|| config.runtime.fzf_binary.clone());
+    let mut fzf_flags = config.runtime.fzf_flags.clone();
+    fzf_flags.extend(args.fzf_flags);
+
     let fzf_config = FzfConfig {
-        binary: args.fzf_binary,
-        timeout: args.timeout,
-        extra_flags: args.fzf_flags,
+        binary: fzf_binary,
+        timeout,
+        extra_flags: fzf_flags,
     };
 
-    if args.debug {
+    if debug {
         let resolved = resolve_binary_path(&fzf_config.binary)
             .map(|path| path.display().to_string())
             .unwrap_or_else(|| "<not found on PATH>".to_string());
@@ -48,8 +76,8 @@ fn run() -> Result<(), AppError> {
             mode_name: mode.name().to_string(),
             mode,
             fzf_config,
-            limit: args.limit,
-            debug: args.debug,
+            debug,
+            settings_manager,
         })
         .map_err(AppError::Gui);
     }
@@ -60,10 +88,10 @@ fn run() -> Result<(), AppError> {
     let response = backend.query(QueryRequest {
         query,
         candidates,
-        limit: args.limit,
+        limit,
     })?;
 
-    if args.debug {
+    if debug {
         eprintln!(
             "vega: mode={} candidates={} results={} elapsed_ms={}",
             mode.name(),
@@ -124,14 +152,14 @@ Options:\n\
 
 #[derive(Debug)]
 struct Args {
-    mode: String,
+    mode: Option<String>,
     query: Option<String>,
-    limit: usize,
+    limit: Option<usize>,
     execute: bool,
     debug: bool,
     help: bool,
-    timeout: Duration,
-    fzf_binary: String,
+    timeout: Option<Duration>,
+    fzf_binary: Option<String>,
     fzf_flags: Vec<String>,
 }
 
@@ -141,42 +169,42 @@ impl Args {
         I: Iterator<Item = String>,
     {
         let mut args = Self {
-            mode: "dmenu".to_string(),
+            mode: None,
             query: None,
-            limit: 20,
+            limit: None,
             execute: false,
             debug: false,
             help: false,
-            timeout: Duration::from_millis(1500),
-            fzf_binary: "fzf".to_string(),
+            timeout: None,
+            fzf_binary: None,
             fzf_flags: Vec::new(),
         };
 
         while let Some(arg) = input.next() {
             match arg.as_str() {
                 "-h" | "--help" => args.help = true,
-                "-show" | "--show" => args.mode = next_value(&mut input, &arg)?,
+                "-show" | "--show" => args.mode = Some(next_value(&mut input, &arg)?),
                 "--query" | "-q" => args.query = Some(next_value(&mut input, &arg)?),
                 "--limit" => {
-                    args.limit = next_value(&mut input, &arg)?.parse().map_err(|_| {
+                    args.limit = Some(next_value(&mut input, &arg)?.parse().map_err(|_| {
                         AppError::Usage("--limit must be a positive integer".into())
-                    })?;
+                    })?);
                 }
                 "--execute" => args.execute = true,
                 "--debug" => args.debug = true,
-                "--fzf" => args.fzf_binary = next_value(&mut input, &arg)?,
+                "--fzf" => args.fzf_binary = Some(next_value(&mut input, &arg)?),
                 "--fzf-flag" => args.fzf_flags.push(next_value(&mut input, &arg)?),
                 "--timeout" => {
                     let ms: u64 = next_value(&mut input, &arg)?
                         .parse()
                         .map_err(|_| AppError::Usage("--timeout must be milliseconds".into()))?;
-                    args.timeout = Duration::from_millis(ms);
+                    args.timeout = Some(Duration::from_millis(ms));
                 }
                 unknown => return Err(AppError::Usage(format!("unknown argument `{unknown}`"))),
             }
         }
 
-        if args.limit == 0 {
+        if args.limit == Some(0) {
             return Err(AppError::Usage("--limit must be greater than zero".into()));
         }
 
@@ -197,6 +225,7 @@ where
 enum AppError {
     Usage(String),
     Io(io::Error),
+    Config(vega::settings::SettingsError),
     Fzf(FzfError),
     Mode(vega::modes::ModeError),
     Gui(String),
@@ -206,7 +235,7 @@ impl AppError {
     fn exit_code(&self) -> i32 {
         match self {
             Self::Usage(_) => 2,
-            Self::Io(_) | Self::Fzf(_) | Self::Mode(_) | Self::Gui(_) => 1,
+            Self::Io(_) | Self::Config(_) | Self::Fzf(_) | Self::Mode(_) | Self::Gui(_) => 1,
         }
     }
 }
@@ -216,6 +245,7 @@ impl std::fmt::Display for AppError {
         match self {
             Self::Usage(message) => write!(formatter, "{message}"),
             Self::Io(error) => write!(formatter, "{error}"),
+            Self::Config(error) => write!(formatter, "{error}"),
             Self::Fzf(error) => write!(formatter, "{error}"),
             Self::Mode(error) => write!(formatter, "{error}"),
             Self::Gui(error) => write!(formatter, "{error}"),
@@ -234,6 +264,12 @@ impl From<io::Error> for AppError {
 impl From<FzfError> for AppError {
     fn from(error: FzfError) -> Self {
         Self::Fzf(error)
+    }
+}
+
+impl From<vega::settings::SettingsError> for AppError {
+    fn from(error: vega::settings::SettingsError) -> Self {
+        Self::Config(error)
     }
 }
 
