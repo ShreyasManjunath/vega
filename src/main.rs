@@ -22,8 +22,8 @@ fn run() -> Result<(), AppError> {
 
     let mode: Box<dyn Mode> = match args.mode.as_str() {
         "dmenu" => Box::new(DmenuMode::new(read_stdin()?)),
-        "run" => Box::new(RunMode::new()),
-        "drun" => Box::new(DesktopMode::new()),
+        "cmd" | "run" => Box::new(RunMode::new()),
+        "apps" | "drun" => Box::new(DesktopMode::new()),
         other => return Err(AppError::Usage(format!("unsupported mode `{other}`"))),
     };
 
@@ -98,19 +98,19 @@ fn read_stdin() -> Result<String, AppError> {
 
 fn print_help() {
     println!(
-        "vega - rofi-like launcher prototype backed by managed fzf\n\
+        "vega - launcher backed by managed fzf\n\
 \n\
 Usage:\n\
-  vega -show <dmenu|run|drun> [--query TEXT] [--limit N]\n\
+  vega -show <dmenu|cmd|apps> [--query TEXT] [--limit N]\n\
 \n\
 Examples:\n\
-  vega -show run\n\
+  vega -show cmd\n\
   printf 'Firefox\\nFiles\\nTerminal\\n' | vega -show dmenu --query fire\n\
-  vega -show run --query alacritty --execute\n\
-  vega -show drun --query browser\n\
+  vega -show cmd --query alacritty --execute\n\
+  vega -show apps --query browser\n\
 \n\
 Options:\n\
-  -show MODE       Select mode: dmenu, run, or drun\n\
+  -show MODE       Select mode: dmenu, cmd, or apps\n\
   --query TEXT     Run non-interactively with fzf --filter\n\
   --limit N        Maximum parsed results, default 20\n\
   --execute        Execute the first non-interactive match without a shell\n\

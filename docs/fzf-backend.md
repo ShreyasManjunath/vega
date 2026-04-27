@@ -20,10 +20,10 @@ ID<TAB>PRIMARY<TAB>SECONDARY<TAB>SEARCHABLE
 
 Mode-specific search scope matters:
 
-- `run` and `dmenu` currently send their primary labels to `fzf`
-- `drun` currently sends only desktop application `Name` to `fzf`
-- `drun` keeps `GenericName` available for exact/prefix/substring matching before fuzzy fallback
-- `drun` does not send desktop `Comment` to `fzf`
+- `cmd` and `dmenu` currently send their primary labels to `fzf`
+- `apps` currently sends only desktop application `Name` to `fzf`
+- `apps` keeps `GenericName` available for exact/prefix/substring matching before fuzzy fallback
+- `apps` does not send desktop `Comment` to `fzf`
 
 This keeps fuzzy ranking useful without allowing unrelated comment text to dominate results.
 
@@ -61,7 +61,7 @@ A persistent process may reduce latency for the graphical launcher, but it requi
 
 ## Future Refinement
 
-If ranking still feels too permissive in `drun`, the next planned tightening step is:
+If ranking still feels too permissive in `apps`, the next planned tightening step is:
 
-- exact/prefix/substring-only for `drun`
+- exact/prefix/substring-only for `apps`
 - no fuzzy fallback when the query is already a strong desktop-name hit

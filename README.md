@@ -9,7 +9,7 @@ The GUI runs through `eframe`/`egui` on top of `winit`, with Wayland and X11 sup
 ## Features
 
 - GUI launcher with keyboard navigation, hover feedback, click selection, and async query handling
-- `drun`, `run`, and `dmenu` modes
+- `apps`, `cmd`, and `dmenu` modes
 - `fzf` integration through `std::process::Command`
 - structured candidates and typed backend/mode errors
 - shell-free execution for launched commands
@@ -21,16 +21,16 @@ The GUI runs through `eframe`/`egui` on top of `winit`, with Wayland and X11 sup
 
 ## Modes
 
-- `drun`: load desktop applications from XDG application directories
-- `run`: load executables from `PATH`
+- `apps`: load desktop applications from XDG application directories
+- `cmd`: load executables from `PATH`
 - `dmenu`: load newline-separated candidates from `stdin`
 
 Matching policy:
 
-- `run` and `dmenu` use `fzf` fuzzy matching on the primary label
-- `drun` fuzzy matching uses desktop `Name`
-- `drun` `GenericName` participates in direct exact, prefix, and substring matches before fuzzy fallback
-- `drun` `Comment` is intentionally excluded from matching
+- `cmd` and `dmenu` use `fzf` fuzzy matching on the primary label
+- `apps` fuzzy matching uses desktop `Name`
+- `apps` `GenericName` participates in direct exact, prefix, and substring matches before fuzzy fallback
+- `apps` `Comment` is intentionally excluded from matching
 
 Use `--debug` to print the configured `fzf` binary, the resolved executable path, and per-query backend diagnostics.
 
@@ -50,16 +50,16 @@ cargo build
 Run the GUI:
 
 ```bash
-cargo run -- -show run
-cargo run -- -show drun
+cargo run -- -show cmd
+cargo run -- -show apps
 printf 'Firefox\nFiles\nTerminal\n' | cargo run -- -show dmenu
 ```
 
 Run non-interactively:
 
 ```bash
-cargo run -- -show run --query alacritty
-cargo run -- -show drun --query browser
+cargo run -- -show cmd --query alacritty
+cargo run -- -show apps --query browser
 printf 'Firefox\nFiles\nTerminal\n' | cargo run -- -show dmenu --query fire
 ```
 
