@@ -57,6 +57,8 @@ struct LauncherApp {
     debug: bool,
     last_query_started: Option<Instant>,
     should_focus_input: bool,
+    centered: bool,
+    scroll_to_selected: bool,
 }
 
 impl LauncherApp {
@@ -92,6 +94,8 @@ impl LauncherApp {
             debug: options.debug,
             last_query_started: None,
             should_focus_input: true,
+            centered: false,
+            scroll_to_selected: false,
         }
     }
 
@@ -197,9 +201,11 @@ impl LauncherApp {
         }
         if ctx.input(|input| input.key_pressed(egui::Key::ArrowDown)) && !self.visible.is_empty() {
             self.selected = (self.selected + 1).min(self.visible.len() - 1);
+            self.scroll_to_selected = true;
         }
         if ctx.input(|input| input.key_pressed(egui::Key::ArrowUp)) && !self.visible.is_empty() {
             self.selected = self.selected.saturating_sub(1);
+            self.scroll_to_selected = true;
         }
         if ctx.input(|input| input.key_pressed(egui::Key::Enter)) {
             self.execute_selected(ctx);
@@ -209,6 +215,15 @@ impl LauncherApp {
 
 impl eframe::App for LauncherApp {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if !self.centered {
+            let info = ctx.input(|i| i.viewport().clone());
+            if let (Some(monitor), Some(inner)) = (info.monitor_size, info.inner_rect) {
+                let x = (monitor.x - inner.width()) / 2.0;
+                let y = (monitor.y - inner.height()) / 2.0;
+                ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(egui::pos2(x, y)));
+                self.centered = true;
+            }
+        }
         self.apply_query_results();
         self.handle_keys(ctx);
         if self.pending.is_some()
@@ -338,6 +353,10 @@ impl eframe::App for LauncherApp {
                                         }
                                     });
                                 });
+                            if selected && self.scroll_to_selected {
+                                row.response.scroll_to_me(None);
+                                self.scroll_to_selected = false;
+                            }
                             if row.response.clicked() {
                                 self.selected = index;
                             }

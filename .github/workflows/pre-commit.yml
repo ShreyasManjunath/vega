@@ -17,11 +17,16 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - name: Install pre-commit
+        run: python -m pip install --upgrade pip pre-commit
 
-      - name: Lint
-        run: cargo clippy --all-targets -- -D warnings
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
