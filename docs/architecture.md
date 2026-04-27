@@ -232,8 +232,9 @@ Must be:
 
 Current state:
 
-- hard-coded `egui` styling in `src/gui.rs`
-- no external theme config yet
+- built-in themes plus user theme files under the XDG config directory
+- CSS-like theme parsing with schema version validation
+- theme values applied through `src/theme.rs` and `src/gui.rs`
 
 ______________________________________________________________________
 
@@ -259,8 +260,9 @@ Config includes:
 
 Current state:
 
-- not implemented
-- debug behavior and backend flags are CLI-driven
+- layered TOML configuration under the XDG config directory
+- defaults merged with user overrides through `serde`
+- runtime options, keybindings, theme selection, and template settings implemented
 
 ______________________________________________________________________
 
@@ -317,7 +319,7 @@ ______________________________________________________________________
 1. Add integration tests with a fake `fzf` binary.
 1. Benchmark restart-per-query before attempting persistent mode.
 1. Re-evaluate `apps` strictness and potentially stop fuzzy fallback once strong name hits exist.
-1. Add config loading and theme/config separation as the GUI grows.
+1. Expand config coverage beyond the current runtime, theme, and keybinding surface.
 
 ______________________________________________________________________
 

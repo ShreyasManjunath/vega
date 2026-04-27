@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -5,20 +6,20 @@ use std::time::{Duration, Instant};
 use eframe::egui;
 
 use crate::candidate::Candidate;
+use crate::config::KeybindingsConfig;
 use crate::fzf::{
     FzfBackend, FzfConfig, FzfError, QueryCancellation, QueryRequest, resolve_binary_path,
 };
 use crate::modes::Mode;
-
-const HEADER_HEIGHT: f32 = 54.0;
-const MODE_BADGE_WIDTH: f32 = 96.0;
+use crate::settings::{ResolvedSettings, SettingsManager};
+use crate::theme::Theme;
 
 pub struct LauncherOptions {
     pub mode_name: String,
     pub mode: Box<dyn Mode>,
     pub fzf_config: FzfConfig,
-    pub limit: usize,
     pub debug: bool,
+    pub settings_manager: SettingsManager,
 }
 
 pub fn run_launcher(options: LauncherOptions) -> Result<(), String> {
@@ -44,6 +45,8 @@ pub fn run_launcher(options: LauncherOptions) -> Result<(), String> {
 struct LauncherApp {
     mode_name: String,
     mode: Box<dyn Mode>,
+    settings_manager: SettingsManager,
+    settings: Arc<ResolvedSettings>,
     fzf_config: FzfConfig,
     all_candidates: Vec<Candidate>,
     visible: Vec<Candidate>,
@@ -56,13 +59,18 @@ struct LauncherApp {
     last_error: Option<String>,
     debug: bool,
     last_query_started: Option<Instant>,
+    last_settings_poll: Instant,
     should_focus_input: bool,
     centered: bool,
     scroll_to_selected: bool,
+    keybindings: ResolvedKeybindings,
 }
 
 impl LauncherApp {
     fn new(options: LauncherOptions) -> Self {
+        let settings = options.settings_manager.current();
+        let limit = settings.config.runtime.limit;
+        let keybindings = resolve_keybindings(&settings.config.keybindings);
         if options.debug {
             let resolved = resolve_binary_path(&options.fzf_config.binary)
                 .map(|path| path.display().to_string())
@@ -76,27 +84,53 @@ impl LauncherApp {
             Ok(candidates) => (candidates, None),
             Err(error) => (Vec::new(), Some(error.to_string())),
         };
-        let visible = all_candidates.iter().take(options.limit).cloned().collect();
+        let visible = all_candidates.iter().take(limit).cloned().collect();
 
         Self {
             mode_name: options.mode_name,
             mode: options.mode,
+            settings_manager: options.settings_manager,
+            settings,
             fzf_config: options.fzf_config,
             all_candidates,
             visible,
             query: String::new(),
             selected: 0,
-            limit: options.limit,
+            limit,
             generation: 0,
             active_query: None,
             pending: None,
             last_error,
             debug: options.debug,
             last_query_started: None,
+            last_settings_poll: Instant::now(),
             should_focus_input: true,
             centered: false,
             scroll_to_selected: false,
+            keybindings,
         }
+    }
+
+    fn apply_settings(&mut self, settings: Arc<ResolvedSettings>, ctx: &egui::Context) {
+        self.settings = settings;
+        self.limit = self.settings.config.runtime.limit;
+        self.debug = self.debug || self.settings.config.runtime.debug;
+        self.keybindings = resolve_keybindings(&self.settings.config.keybindings);
+        self.fzf_config.binary = self.settings.config.runtime.fzf_binary.clone();
+        self.fzf_config.timeout = Duration::from_millis(self.settings.config.runtime.timeout_ms);
+        self.fzf_config.extra_flags = self.settings.config.runtime.fzf_flags.clone();
+
+        if self.query.is_empty() {
+            self.visible = self
+                .all_candidates
+                .iter()
+                .take(self.limit)
+                .cloned()
+                .collect();
+        } else {
+            self.start_query(ctx);
+        }
+        self.selected = self.selected.min(self.visible.len().saturating_sub(1));
     }
 
     fn cancel_pending_query(&mut self) {
@@ -195,20 +229,49 @@ impl LauncherApp {
     }
 
     fn handle_keys(&mut self, ctx: &egui::Context) {
-        if ctx.input(|input| input.key_pressed(egui::Key::Escape)) {
+        if ctx.input(|input| input.key_pressed(self.keybindings.cancel)) {
             self.cancel_pending_query();
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
-        if ctx.input(|input| input.key_pressed(egui::Key::ArrowDown)) && !self.visible.is_empty() {
+        if ctx.input(|input| input.key_pressed(self.keybindings.select_next))
+            && !self.visible.is_empty()
+        {
             self.selected = (self.selected + 1).min(self.visible.len() - 1);
             self.scroll_to_selected = true;
         }
-        if ctx.input(|input| input.key_pressed(egui::Key::ArrowUp)) && !self.visible.is_empty() {
+        if ctx.input(|input| input.key_pressed(self.keybindings.select_prev))
+            && !self.visible.is_empty()
+        {
             self.selected = self.selected.saturating_sub(1);
             self.scroll_to_selected = true;
         }
-        if ctx.input(|input| input.key_pressed(egui::Key::Enter)) {
+        if ctx.input(|input| input.key_pressed(self.keybindings.submit)) {
             self.execute_selected(ctx);
+        }
+    }
+
+    fn poll_settings_reload(&mut self, ctx: &egui::Context) {
+        if !self.settings.config.behavior.hot_reload {
+            return;
+        }
+
+        let poll_interval =
+            Duration::from_millis(self.settings.config.behavior.poll_interval_ms.max(50));
+        if self.last_settings_poll.elapsed() < poll_interval {
+            return;
+        }
+        self.last_settings_poll = Instant::now();
+
+        match self.settings_manager.reload_if_changed() {
+            Ok(Some(settings)) => {
+                self.apply_settings(settings, ctx);
+                self.last_error = None;
+                ctx.request_repaint();
+            }
+            Ok(None) => {}
+            Err(error) => {
+                self.last_error = Some(error.to_string());
+            }
         }
     }
 }
@@ -224,6 +287,7 @@ impl eframe::App for LauncherApp {
                 self.centered = true;
             }
         }
+        self.poll_settings_reload(ctx);
         self.apply_query_results();
         self.handle_keys(ctx);
         if self.pending.is_some()
@@ -237,46 +301,63 @@ impl eframe::App for LauncherApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        apply_style(&ctx);
+        let settings = Arc::clone(&self.settings);
+        let theme = &settings.theme;
+        apply_style(&ctx, theme);
 
         let panel_frame = egui::Frame::new()
-            .fill(egui::Color32::from_rgb(22, 24, 28))
-            .inner_margin(egui::Margin::same(16));
+            .fill(theme.window_background.to_egui())
+            .inner_margin(egui::Margin::same(theme.panel_padding));
 
         egui::CentralPanel::default()
             .frame(panel_frame)
             .show_inside(ui, |ui| {
+                let templates = &settings.templates;
                 ui.horizontal(|ui| {
                     ui.allocate_ui_with_layout(
-                        egui::vec2(MODE_BADGE_WIDTH, HEADER_HEIGHT),
+                        egui::vec2(theme.badge_width, theme.header_height),
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
                             egui::Frame::new()
-                                .fill(egui::Color32::from_rgb(28, 33, 42))
-                                .corner_radius(egui::CornerRadius::same(8))
-                                .inner_margin(egui::Margin::symmetric(12, 8))
+                                .fill(theme.badge_background.to_egui())
+                                .corner_radius(egui::CornerRadius::same(theme.badge_radius))
+                                .inner_margin(egui::Margin::symmetric(
+                                    theme.badge_padding_x,
+                                    theme.badge_padding_y,
+                                ))
                                 .show(ui, |ui| {
-                                    ui.set_min_size(egui::vec2(MODE_BADGE_WIDTH, HEADER_HEIGHT));
+                                    ui.set_min_size(egui::vec2(
+                                        theme.badge_width,
+                                        theme.header_height,
+                                    ));
                                     ui.centered_and_justified(|ui| {
                                         ui.label(
-                                            egui::RichText::new(&self.mode_name)
-                                                .size(21.0)
-                                                .color(egui::Color32::from_rgb(138, 180, 248))
-                                                .strong(),
+                                            egui::RichText::new(
+                                                templates.render_mode_badge(&self.mode_name),
+                                            )
+                                            .size(theme.badge_font_size)
+                                            .color(theme.badge_foreground.to_egui())
+                                            .strong(),
                                         );
                                     });
                                 });
                         },
                     );
-                    ui.add_space(12.0);
+                    ui.add_space(theme.header_gap);
                     let input = ui.add_sized(
-                        [ui.available_width(), HEADER_HEIGHT],
+                        [ui.available_width(), theme.header_height],
                         egui::TextEdit::singleline(&mut self.query)
-                            .font(egui::FontId::new(20.0, egui::FontFamily::Proportional))
+                            .font(egui::FontId::new(
+                                theme.input_font_size,
+                                egui::FontFamily::Proportional,
+                            ))
                             .hint_text("Search")
-                            .margin(egui::Margin::symmetric(14, 8))
-                            .background_color(egui::Color32::from_rgb(16, 18, 22))
-                            .text_color(egui::Color32::from_rgb(239, 241, 245))
+                            .margin(egui::Margin::symmetric(
+                                theme.input_padding_x,
+                                theme.input_padding_y,
+                            ))
+                            .background_color(theme.input_background.to_egui())
+                            .text_color(theme.input_foreground.to_egui())
                             .desired_width(f32::INFINITY),
                     );
                     if self.should_focus_input {
@@ -299,9 +380,9 @@ impl eframe::App for LauncherApp {
                     }
                 });
 
-                ui.add_space(12.0);
+                ui.add_space(theme.header_gap);
                 if let Some(error) = &self.last_error {
-                    ui.colored_label(egui::Color32::from_rgb(255, 138, 128), error);
+                    ui.colored_label(theme.error_foreground.to_egui(), error);
                     return;
                 }
 
@@ -312,9 +393,9 @@ impl eframe::App for LauncherApp {
                             ui.add_space(24.0);
                             ui.centered_and_justified(|ui| {
                                 ui.label(
-                                    egui::RichText::new("No matches")
-                                        .size(16.0)
-                                        .color(egui::Color32::from_rgb(166, 173, 186)),
+                                    egui::RichText::new(templates.render_empty_state(&self.query))
+                                        .size(theme.empty_font_size)
+                                        .color(theme.empty_foreground.to_egui()),
                                 );
                             });
                             return;
@@ -325,39 +406,40 @@ impl eframe::App for LauncherApp {
                                 break;
                             };
                             let selected = index == self.selected;
-                            let row_height = 40.0;
+                            let row_height = theme.row_height;
                             let (row_rect, row_response) = ui.allocate_exact_size(
                                 egui::vec2(ui.available_width(), row_height),
                                 egui::Sense::click(),
                             );
                             let background = if selected {
-                                egui::Color32::from_rgb(47, 75, 118)
+                                theme.row_selected_background.to_egui()
                             } else if row_response.hovered() {
-                                egui::Color32::from_rgb(38, 44, 54)
+                                theme.row_hover_background.to_egui()
                             } else {
-                                egui::Color32::from_rgb(22, 24, 28)
+                                theme.row_background.to_egui()
                             };
                             ui.painter().rect_filled(
                                 row_rect,
                                 egui::CornerRadius::same(0),
                                 background,
                             );
-                            let inner_rect = row_rect.shrink2(egui::vec2(14.0, 8.0));
+                            let inner_rect = row_rect
+                                .shrink2(egui::vec2(theme.row_padding_x, theme.row_padding_y));
                             ui.scope_builder(egui::UiBuilder::new().max_rect(inner_rect), |ui| {
                                 ui.horizontal(|ui| {
+                                    let primary = templates.render_row_primary(candidate);
                                     ui.label(
-                                        egui::RichText::new(&candidate.primary)
-                                            .size(19.0)
-                                            .color(egui::Color32::from_rgb(239, 241, 245)),
+                                        egui::RichText::new(primary)
+                                            .size(theme.row_primary_font_size)
+                                            .color(theme.row_foreground.to_egui()),
                                     );
-                                    if let Some(secondary) = &candidate.secondary
-                                        && !secondary.is_empty()
-                                    {
+                                    let secondary = templates.render_row_secondary(candidate);
+                                    if !secondary.is_empty() {
                                         ui.add_space(8.0);
                                         ui.label(
                                             egui::RichText::new(secondary)
-                                                .size(14.0)
-                                                .color(egui::Color32::from_rgb(166, 173, 186)),
+                                                .size(theme.row_secondary_font_size)
+                                                .color(theme.row_secondary_foreground.to_egui()),
                                         );
                                     }
                                 });
@@ -373,38 +455,68 @@ impl eframe::App for LauncherApp {
                                 self.selected = index;
                                 self.execute_selected(&ctx);
                             }
-                            ui.add_space(2.0);
+                            ui.add_space(theme.row_gap);
                         }
                     });
             });
     }
 }
 
-fn apply_style(ctx: &egui::Context) {
+fn apply_style(ctx: &egui::Context, theme: &Theme) {
     let mut style = (*ctx.global_style()).clone();
-    style.spacing.item_spacing = egui::vec2(8.0, 6.0);
+    style.spacing.item_spacing = egui::vec2(theme.item_spacing_x, theme.item_spacing_y);
     style.text_styles.insert(
         egui::TextStyle::Heading,
-        egui::FontId::new(22.0, egui::FontFamily::Proportional),
+        egui::FontId::new(theme.heading_font_size, egui::FontFamily::Proportional),
     );
     style.text_styles.insert(
         egui::TextStyle::Body,
-        egui::FontId::new(16.0, egui::FontFamily::Proportional),
+        egui::FontId::new(theme.body_font_size, egui::FontFamily::Proportional),
     );
     style.text_styles.insert(
         egui::TextStyle::Button,
-        egui::FontId::new(16.0, egui::FontFamily::Proportional),
+        egui::FontId::new(theme.button_font_size, egui::FontFamily::Proportional),
     );
     style.text_styles.insert(
         egui::TextStyle::Small,
-        egui::FontId::new(12.0, egui::FontFamily::Proportional),
+        egui::FontId::new(theme.small_font_size, egui::FontFamily::Proportional),
     );
-    style.visuals.override_text_color = Some(egui::Color32::from_rgb(239, 241, 245));
-    style.visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(35, 38, 46);
-    style.visuals.widgets.active.bg_fill = egui::Color32::from_rgb(47, 75, 118);
-    style.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(38, 44, 54);
-    style.visuals.selection.bg_fill = egui::Color32::from_rgb(47, 75, 118);
+    style.visuals.override_text_color = Some(theme.row_foreground.to_egui());
+    style.visuals.widgets.inactive.bg_fill = theme.input_background.to_egui();
+    style.visuals.widgets.active.bg_fill = theme.row_selected_background.to_egui();
+    style.visuals.widgets.hovered.bg_fill = theme.row_hover_background.to_egui();
+    style.visuals.selection.bg_fill = theme.row_selected_background.to_egui();
     ctx.set_global_style(style);
+}
+
+#[derive(Clone, Copy)]
+struct ResolvedKeybindings {
+    submit: egui::Key,
+    cancel: egui::Key,
+    select_next: egui::Key,
+    select_prev: egui::Key,
+}
+
+fn resolve_keybindings(config: &KeybindingsConfig) -> ResolvedKeybindings {
+    let defaults = KeybindingsConfig::default();
+    ResolvedKeybindings {
+        submit: parse_key(&config.submit).unwrap_or(parse_key(&defaults.submit).expect("Enter")),
+        cancel: parse_key(&config.cancel).unwrap_or(parse_key(&defaults.cancel).expect("Escape")),
+        select_next: parse_key(&config.select_next)
+            .unwrap_or(parse_key(&defaults.select_next).expect("ArrowDown")),
+        select_prev: parse_key(&config.select_prev)
+            .unwrap_or(parse_key(&defaults.select_prev).expect("ArrowUp")),
+    }
+}
+
+fn parse_key(name: &str) -> Option<egui::Key> {
+    match name.trim().to_ascii_lowercase().as_str() {
+        "arrowdown" | "down" | "j" => Some(egui::Key::ArrowDown),
+        "arrowup" | "up" | "k" => Some(egui::Key::ArrowUp),
+        "escape" | "esc" => Some(egui::Key::Escape),
+        "enter" | "return" => Some(egui::Key::Enter),
+        _ => None,
+    }
 }
 
 struct QueryResult {
