@@ -13,21 +13,42 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
-    container:
-      image: node:20-alpine
-
     steps:
-      - name: Install git and openssh
-        run: apk add --no-cache git openssh
-
       - name: Checkout (full history)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
       - name: Mark workspace safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Install semantic-release toolchain
+        run: >
+          npm install --no-save
+          semantic-release@24.2.9
+          @semantic-release/commit-analyzer
+          @semantic-release/release-notes-generator
+          @semantic-release/changelog
+          @semantic-release/exec
+          @semantic-release/git
+          @semantic-release/github
+          conventional-changelog-conventionalcommits
 
       - name: Run semantic-release
         env:

@@ -12,7 +12,7 @@ plugins:
     - changelogFile: CHANGELOG.md
   - - '@semantic-release/exec'
     - prepareCmd: |
-        python - <<'PY'
+        python3 - <<'PY'
         from pathlib import Path
         import re
 
@@ -23,7 +23,7 @@ plugins:
         text = re.sub(r'^version = ".*"$', f'version = "{version}"', text, count=1, flags=re.MULTILINE)
         cargo_toml.write_text(text)
         PY
-        cargo check --locked
+        cargo check
   - - '@semantic-release/git'
     - assets:
         - CHANGELOG.md
