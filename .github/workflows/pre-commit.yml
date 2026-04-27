@@ -20,13 +20,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
       - name: Install pre-commit
-        run: python -m pip install --upgrade pip pre-commit
+        run: python -m pip install --upgrade pip "pre-commit==4.5.1"
 
       - name: Run pre-commit hooks
         run: pre-commit run --all-files

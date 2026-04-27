@@ -325,42 +325,51 @@ impl eframe::App for LauncherApp {
                                 break;
                             };
                             let selected = index == self.selected;
+                            let row_height = 40.0;
+                            let (row_rect, row_response) = ui.allocate_exact_size(
+                                egui::vec2(ui.available_width(), row_height),
+                                egui::Sense::click(),
+                            );
                             let background = if selected {
                                 egui::Color32::from_rgb(47, 75, 118)
+                            } else if row_response.hovered() {
+                                egui::Color32::from_rgb(38, 44, 54)
                             } else {
                                 egui::Color32::from_rgb(22, 24, 28)
                             };
-                            let row = egui::Frame::new()
-                                .fill(background)
-                                .inner_margin(egui::Margin::symmetric(14, 8))
-                                .show(ui, |ui| {
-                                    ui.set_width(ui.available_width());
-                                    ui.horizontal(|ui| {
+                            ui.painter().rect_filled(
+                                row_rect,
+                                egui::CornerRadius::same(0),
+                                background,
+                            );
+                            let inner_rect = row_rect.shrink2(egui::vec2(14.0, 8.0));
+                            ui.scope_builder(egui::UiBuilder::new().max_rect(inner_rect), |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        egui::RichText::new(&candidate.primary)
+                                            .size(19.0)
+                                            .color(egui::Color32::from_rgb(239, 241, 245)),
+                                    );
+                                    if let Some(secondary) = &candidate.secondary
+                                        && !secondary.is_empty()
+                                    {
+                                        ui.add_space(8.0);
                                         ui.label(
-                                            egui::RichText::new(&candidate.primary)
-                                                .size(19.0)
-                                                .color(egui::Color32::from_rgb(239, 241, 245)),
+                                            egui::RichText::new(secondary)
+                                                .size(14.0)
+                                                .color(egui::Color32::from_rgb(166, 173, 186)),
                                         );
-                                        if let Some(secondary) = &candidate.secondary
-                                            && !secondary.is_empty()
-                                        {
-                                            ui.add_space(8.0);
-                                            ui.label(
-                                                egui::RichText::new(secondary)
-                                                    .size(14.0)
-                                                    .color(egui::Color32::from_rgb(166, 173, 186)),
-                                            );
-                                        }
-                                    });
+                                    }
                                 });
+                            });
                             if selected && self.scroll_to_selected {
-                                row.response.scroll_to_me(None);
+                                row_response.scroll_to_me(None);
                                 self.scroll_to_selected = false;
                             }
-                            if row.response.clicked() {
+                            if row_response.clicked() {
                                 self.selected = index;
                             }
-                            if row.response.double_clicked() {
+                            if row_response.double_clicked() {
                                 self.selected = index;
                                 self.execute_selected(&ctx);
                             }

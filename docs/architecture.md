@@ -1,6 +1,6 @@
 # Architecture
 
-This document defines the architecture for `vega`, a rofi-like launcher with a managed `fzf` backend and a custom Rust GUI.
+This document defines the architecture for `vega`, a launcher with a managed `fzf` backend and a custom Rust GUI.
 
 This is a showcase-grade product. The system must be designed for:
 
@@ -21,13 +21,13 @@ The goal is to build a launcher that combines:
 - Wayland-native performance
 - clean and maintainable architecture
 
-Current prototype name:
+Current project name:
 
 - `vega`
 
 Expected usage:
 
-- `vega -show drun`
+- `vega -show apps`
 
 ______________________________________________________________________
 
@@ -109,6 +109,7 @@ Constraints:
 Current implementation:
 
 - `src/gui.rs` with `eframe`/`egui`
+- runtime support through `winit` on both Wayland and X11
 - refined header row with fixed-width mode badge and larger input typography
 - background query worker threads
 - generation-based stale result suppression
@@ -160,14 +161,14 @@ Current matching stages:
 
 Current policy:
 
-- `run` and `dmenu` use fuzzy backend matching on primary labels
-- `drun` fuzzy matching uses desktop `Name`
-- `drun` `GenericName` is available for stronger direct matches before fuzzy fallback
-- desktop `Comment` is excluded from `drun` search scope
+- `cmd` and `dmenu` use fuzzy backend matching on primary labels
+- `apps` fuzzy matching uses desktop `Name`
+- `apps` `GenericName` is available for stronger direct matches before fuzzy fallback
+- desktop `Comment` is excluded from `apps` search scope
 
 Future policy refinement under consideration:
 
-- exact/prefix/substring-only for `drun`
+- exact/prefix/substring-only for `apps`
 - no fuzzy fallback when the query is already a strong name hit
 
 Debug visibility must include:
@@ -185,8 +186,8 @@ Modes provide candidates via a common interface.
 
 Examples:
 
-- drun (desktop apps)
-- run (executables)
+- apps (desktop apps)
+- cmd (executables)
 - dmenu (stdin)
 - window (window switcher)
 - keys (keybinding/help)
@@ -201,8 +202,8 @@ Each mode defines:
 Current implementations:
 
 - `dmenu`: stdin lines, label search, print selected label
-- `run`: executables from `PATH`, direct `Command` execution
-- `drun`: `.desktop` entries, conservative `Exec` parsing, direct `Command` execution
+- `cmd`: executables from `PATH`, direct `Command` execution
+- `apps`: `.desktop` entries, conservative `Exec` parsing, direct `Command` execution
 
 ______________________________________________________________________
 
@@ -292,7 +293,7 @@ Current code is organized as:
 - `src/main.rs`: CLI parsing, mode dispatch, one-shot query path
 - `src/gui.rs`: current GUI window, input handling, result list, worker-thread integration
 - `src/fzf.rs`: subprocess lifecycle, candidate transport, pre-filter stage, timeout/error handling
-- `src/modes.rs`: `dmenu`, `run`, and `drun` providers plus execution logic
+- `src/modes.rs`: `dmenu`, `cmd`, and `apps` providers plus execution logic
 - `src/candidate.rs`: structured candidate model and execution actions
 
 This is intentionally smaller than the eventual target layout and should evolve into dedicated `ui/`, `search/`, `config/`, and diagnostics modules as the project grows.
@@ -315,7 +316,7 @@ ______________________________________________________________________
 1. Move GUI code from `src/gui.rs` into a fuller `src/ui/` tree.
 1. Add integration tests with a fake `fzf` binary.
 1. Benchmark restart-per-query before attempting persistent mode.
-1. Re-evaluate `drun` strictness and potentially stop fuzzy fallback once strong name hits exist.
+1. Re-evaluate `apps` strictness and potentially stop fuzzy fallback once strong name hits exist.
 1. Add config loading and theme/config separation as the GUI grows.
 
 ______________________________________________________________________
@@ -817,8 +818,8 @@ Modes should:
 
 Examples:
 
-- drun → ignore hidden entries
-- run → deduplicate PATH
+- apps → ignore hidden entries
+- cmd → deduplicate PATH
 - window → filter invisible windows
 
 ### 22.2 Chunking (if needed)
@@ -1203,8 +1204,8 @@ If useful, you may also propose a **CLI-friendly product name** similar in spiri
 
 The name should work naturally in commands like:
 
-- `name -show drun`
-- `name -show run`
+- `name -show apps`
+- `name -show cmd`
 
 Do not let naming derail the backend work. It is optional and secondary.
 

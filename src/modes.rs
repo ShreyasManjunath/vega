@@ -58,7 +58,7 @@ impl RunMode {
 
 impl Mode for RunMode {
     fn name(&self) -> &'static str {
-        "run"
+        "cmd"
     }
 
     fn load(&self) -> Result<Vec<Candidate>, ModeError> {
@@ -81,7 +81,7 @@ impl Mode for RunMode {
                 }
 
                 candidates.push(
-                    Candidate::new(format!("run:{name}"), name)
+                    Candidate::new(format!("cmd:{name}"), name)
                         .with_secondary(path.display().to_string())
                         .with_action(CandidateAction::Exec(vec![path.display().to_string()])),
                 );
@@ -121,7 +121,7 @@ impl DesktopMode {
 
 impl Mode for DesktopMode {
     fn name(&self) -> &'static str {
-        "drun"
+        "apps"
     }
 
     fn load(&self) -> Result<Vec<Candidate>, ModeError> {

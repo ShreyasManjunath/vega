@@ -1,43 +1,46 @@
-# Development Notes
+# Notes
 
-## Current Scope
+## Behavior
 
-The repository now contains a Rust application named `vega`. It has a first graphical launcher window plus a production-oriented backend for validating modes, candidate modeling, and managed `fzf` integration. The UI is implemented with eframe/winit, which can run on Wayland through the platform stack.
-
-Current GUI state:
-
-- custom launcher window with a dedicated mode badge
-- larger, more legible query input
-- result list with improved row typography
-- generation-based stale result suppression for async query workers
-- explicit cancellation of superseded in-flight GUI queries
+- The GUI is built in `src/gui.rs` with `eframe`/`egui`.
+- Query execution is asynchronous and uses generation checks plus explicit cancellation to suppress stale results.
+- The runtime stack works on both Wayland and X11 through `winit`.
+- The result list supports hover highlight, single-click selection, and double-click execution.
+- Non-interactive mode reuses the same backend path as the GUI and can either print or execute the first match.
 
 Supported modes:
 
 - `dmenu`: reads newline-separated candidates from stdin.
-- `run`: scans executable files from `PATH`.
-- `drun`: scans `.desktop` files from XDG application directories.
+- `cmd`: scans executable files from `PATH`.
+- `apps`: scans `.desktop` files from XDG application directories.
 
-Current search policy:
+## Search And Execution
 
-- `run` and `dmenu` use managed `fzf --filter` matching on candidate primary labels.
-- `drun` searches desktop application names with fuzzy fallback through `fzf`.
-- `drun` generic names are display-only for fuzzy matching, but still participate in direct exact/prefix/substring matches.
-- `drun` comments are intentionally excluded from search to avoid surprising low-signal results.
+Search policy:
+
+- `cmd` and `dmenu` use managed `fzf --filter` matching on candidate primary labels.
+- `apps` searches desktop application names with fuzzy fallback through `fzf`.
+- `apps` generic names remain available for direct exact, prefix, and substring matches before fuzzy fallback.
+- `apps` comments are intentionally excluded from matching.
+
+Execution:
+
+- `cmd` executes direct executable paths through `Command`.
+- `apps` parses desktop `Exec` lines into argv, strips field codes such as `%u`, and rejects direct shell interpreters such as `sh` or `bash`.
 
 ## Commands
 
 ```bash
 cargo fmt
 cargo test
-cargo clippy -- -D warnings
-cargo run -- -show run
-cargo run -- -show drun
+cargo clippy --all-targets -- -D warnings
+cargo run -- -show cmd
+cargo run -- -show apps
 printf 'Firefox\nFiles\nTerminal\n' | cargo run -- -show dmenu --query fire
-cargo run -- -show run --query alacritty
+cargo run -- -show cmd --query alacritty
 ```
 
-Omit `--query` to open the custom launcher window. Use `--query` for non-interactive filtering in scripts. Use `--execute` only when you want to launch the first selected result from a non-interactive run. Execution uses `Command`, not a shell.
+Omit `--query` to open the GUI. Use `--query` for non-interactive filtering. Add `--execute` to launch the first match instead of printing it.
 
 Use `--debug` to print:
 
@@ -45,23 +48,16 @@ Use `--debug` to print:
 - the resolved path from `PATH`
 - mode/query result counts and elapsed backend time
 
-## Safety Notes
+## Development
 
-The `run` mode launches direct executable paths. The `drun` mode parses desktop `Exec` lines into argv, strips field codes such as `%u`, rejects unquoted shell operators, and rejects direct shell interpreters such as `sh` or `bash`. Full desktop-entry compatibility is larger than this first slice and should be expanded with tests before UI integration.
+- `pre-commit`: file hygiene checks, Markdown formatting, `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings`
+- `pre-push`: `cargo test`
 
-## Benchmark Targets
+CI runs separate workflows for linting, build/test validation, and release automation.
 
-Measure these before choosing a persistent fzf process:
+## Open Work
 
-- process startup overhead for `fzf --filter`;
-- candidate serialization and stdin write throughput;
-- stdout parse latency at 1k, 10k, and 50k candidates;
-- perceived latency when query work runs off the UI thread.
-
-## Next Implementation Steps
-
-1. Move GUI code from `src/gui.rs` into a fuller `src/ui/` module tree as it grows.
-1. Add config loading under `src/config/`.
-1. Add integration tests with a fake fzf binary.
-1. Benchmark restart-per-query before attempting persistent mode.
-1. Consider making `drun` stricter still: exact/prefix/substring-only for `drun`, with no fuzzy fallback once the query is already a strong name hit.
+- config loading and external theme support
+- broader integration tests, especially around fake `fzf` processes and desktop-entry edge cases
+- benchmarking before any move to a persistent `fzf` process
+- eventual decomposition of `src/gui.rs` into the fuller module structure described in `docs/architecture.md`
