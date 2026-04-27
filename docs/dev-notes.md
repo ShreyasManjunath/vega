@@ -11,22 +11,22 @@
 Supported modes:
 
 - `dmenu`: reads newline-separated candidates from stdin.
-- `run`: scans executable files from `PATH`.
-- `drun`: scans `.desktop` files from XDG application directories.
+- `cmd`: scans executable files from `PATH`.
+- `apps`: scans `.desktop` files from XDG application directories.
 
 ## Search And Execution
 
 Search policy:
 
-- `run` and `dmenu` use managed `fzf --filter` matching on candidate primary labels.
-- `drun` searches desktop application names with fuzzy fallback through `fzf`.
-- `drun` generic names remain available for direct exact, prefix, and substring matches before fuzzy fallback.
-- `drun` comments are intentionally excluded from matching.
+- `cmd` and `dmenu` use managed `fzf --filter` matching on candidate primary labels.
+- `apps` searches desktop application names with fuzzy fallback through `fzf`.
+- `apps` generic names remain available for direct exact, prefix, and substring matches before fuzzy fallback.
+- `apps` comments are intentionally excluded from matching.
 
 Execution:
 
-- `run` executes direct executable paths through `Command`.
-- `drun` parses desktop `Exec` lines into argv, strips field codes such as `%u`, and rejects direct shell interpreters such as `sh` or `bash`.
+- `cmd` executes direct executable paths through `Command`.
+- `apps` parses desktop `Exec` lines into argv, strips field codes such as `%u`, and rejects direct shell interpreters such as `sh` or `bash`.
 
 ## Commands
 
@@ -34,10 +34,10 @@ Execution:
 cargo fmt
 cargo test
 cargo clippy --all-targets -- -D warnings
-cargo run -- -show run
-cargo run -- -show drun
+cargo run -- -show cmd
+cargo run -- -show apps
 printf 'Firefox\nFiles\nTerminal\n' | cargo run -- -show dmenu --query fire
-cargo run -- -show run --query alacritty
+cargo run -- -show cmd --query alacritty
 ```
 
 Omit `--query` to open the GUI. Use `--query` for non-interactive filtering. Add `--execute` to launch the first match instead of printing it.
