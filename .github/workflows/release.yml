@@ -28,8 +28,16 @@ jobs:
       - name: Mark workspace safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+        run: >
+          npx --yes
+          --package semantic-release@24.2.9
+          --package @semantic-release/commit-analyzer
+          --package @semantic-release/release-notes-generator
+          --package @semantic-release/changelog
+          --package @semantic-release/exec
+          --package @semantic-release/git
+          --package @semantic-release/github
+          semantic-release
