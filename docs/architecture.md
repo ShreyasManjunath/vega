@@ -1,6 +1,6 @@
 # Architecture
 
-This document defines the architecture for `vega`, a rofi-like launcher with a managed `fzf` backend and a custom Rust GUI.
+This document defines the architecture for `vega`, a launcher with a managed `fzf` backend and a custom Rust GUI.
 
 This is a showcase-grade product. The system must be designed for:
 
@@ -21,7 +21,7 @@ The goal is to build a launcher that combines:
 - Wayland-native performance
 - clean and maintainable architecture
 
-Current prototype name:
+Current project name:
 
 - `vega`
 
@@ -109,6 +109,7 @@ Constraints:
 Current implementation:
 
 - `src/gui.rs` with `eframe`/`egui`
+- runtime support through `winit` on both Wayland and X11
 - refined header row with fixed-width mode badge and larger input typography
 - background query worker threads
 - generation-based stale result suppression
