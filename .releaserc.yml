@@ -23,6 +23,7 @@ plugins:
         text = re.sub(r'^version = ".*"$', f'version = "{version}"', text, count=1, flags=re.MULTILINE)
         cargo_toml.write_text(text)
         PY
+        python3 -m mdformat CHANGELOG.md
         cargo check
   - - '@semantic-release/git'
     - assets:

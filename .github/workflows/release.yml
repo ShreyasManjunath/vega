@@ -50,6 +50,9 @@ jobs:
           @semantic-release/github
           conventional-changelog-conventionalcommits
 
+      - name: Install markdown formatter
+        run: python -m pip install --upgrade mdformat mdformat-gfm
+
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
