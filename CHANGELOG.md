@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/ShreyasManjunath/vega/compare/v1.0.0...v1.0.1) (2026-04-27)
+
+### Bug Fixes
+
+* **gui:** clickable and highlight rows on hover ([#4](https://github.com/ShreyasManjunath/vega/issues/4)) ([033c044](https://github.com/ShreyasManjunath/vega/commit/033c044b3569bfdffa8f3697ae7bb2f4f59273ae))
+
 ## 1.0.0 (2026-04-27)
 
 ### Features
