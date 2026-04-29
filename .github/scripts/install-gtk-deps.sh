@@ -33,7 +33,7 @@ if command -v apt-get >/dev/null 2>&1; then
             https://github.com/wmww/gtk4-layer-shell.git /tmp/gtk4-layer-shell
 
         meson setup /tmp/gtk4-layer-shell/build /tmp/gtk4-layer-shell \
-            -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false --prefix=/usr
+            -Dexamples=disabled -Ddocs=disabled -Dtests=disabled -Dintrospection=disabled --prefix=/usr
 
         sudo ninja -C /tmp/gtk4-layer-shell/build install
         sudo ldconfig
