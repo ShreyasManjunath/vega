@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Install GTK4 + X11/Wayland build dependencies for vega.
 # Supports Ubuntu/Debian (apt) and Arch (pacman).
-# On Ubuntu 22.04, gtk4-layer-shell is built from source as a fallback.
+# On Ubuntu releases without libgtk4-layer-shell-dev (including 22.04 and 24.04),
+# gtk4-layer-shell is built from source as a fallback.
 set -euo pipefail
 
 if command -v apt-get >/dev/null 2>&1; then
@@ -33,7 +34,7 @@ if command -v apt-get >/dev/null 2>&1; then
             https://github.com/wmww/gtk4-layer-shell.git /tmp/gtk4-layer-shell
 
         meson setup /tmp/gtk4-layer-shell/build /tmp/gtk4-layer-shell \
-            -Dexamples=disabled -Ddocs=disabled -Dtests=disabled -Dintrospection=disabled --prefix=/usr
+            -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false --prefix=/usr
 
         sudo ninja -C /tmp/gtk4-layer-shell/build install
         sudo ldconfig
