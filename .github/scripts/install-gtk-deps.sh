@@ -20,8 +20,8 @@ if command -v apt-get >/dev/null 2>&1; then
         libxfixes-dev \
         libxi-dev \
         libxinerama-dev \
-        libxcursor-dev
-
+        libxcursor-dev \
+        gobject-introspection
     if sudo apt-get install -y libgtk4-layer-shell-dev >/dev/null 2>&1; then
         echo "gtk4-layer-shell installed via apt"
     else
@@ -32,7 +32,7 @@ if command -v apt-get >/dev/null 2>&1; then
             https://github.com/wmww/gtk4-layer-shell.git /tmp/gtk4-layer-shell
 
         meson setup /tmp/gtk4-layer-shell/build /tmp/gtk4-layer-shell \
-            -Dexamples=false -Ddocs=false -Dtests=false --prefix=/usr
+            -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false --prefix=/usr
 
         sudo ninja -C /tmp/gtk4-layer-shell/build install
         sudo ldconfig
@@ -54,7 +54,8 @@ elif command -v pacman >/dev/null 2>&1; then
         libxfixes \
         libxi \
         libxinerama \
-        libxcursor
+        libxcursor \
+        gobject-introspection
 else
     echo "Unsupported package manager. Please install GTK4, gtk4-layer-shell, Wayland, X11, and pkg-config development packages manually."
     exit 1
