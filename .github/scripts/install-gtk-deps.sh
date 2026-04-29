@@ -21,7 +21,8 @@ if command -v apt-get >/dev/null 2>&1; then
         libxi-dev \
         libxinerama-dev \
         libxcursor-dev \
-        gobject-introspection
+        gobject-introspection \
+        valac
     if sudo apt-get install -y libgtk4-layer-shell-dev >/dev/null 2>&1; then
         echo "gtk4-layer-shell installed via apt"
     else
@@ -55,7 +56,8 @@ elif command -v pacman >/dev/null 2>&1; then
         libxi \
         libxinerama \
         libxcursor \
-        gobject-introspection
+        gobject-introspection \
+        vala
 else
     echo "Unsupported package manager. Please install GTK4, gtk4-layer-shell, Wayland, X11, and pkg-config development packages manually."
     exit 1
