@@ -22,6 +22,9 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install system dependencies
+        run: .github/scripts/install-gtk-deps.sh
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 

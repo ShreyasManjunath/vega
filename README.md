@@ -4,11 +4,11 @@
 
 The name `vega` comes from Sanskrit `vēgah` (`वेग:`), meaning speed, velocity, force, or impetus.
 
-The GUI runs through `eframe`/`egui` on top of `winit`, with Wayland and X11 support.
+The GUI is built with GTK4, with native Wayland (wlr-layer-shell) and X11 support.
 
 ## Features
 
-- GUI launcher with keyboard navigation, hover feedback, click selection, and async query handling
+- GTK4 GUI with keyboard navigation, hover feedback, click selection, and async query handling
 - `apps`, `cmd`, and `dmenu` modes
 - `fzf` integration through `std::process::Command`
 - layered XDG configuration with TOML parsing through `serde`
@@ -17,7 +17,7 @@ The GUI runs through `eframe`/`egui` on top of `winit`, with Wayland and X11 sup
 - hot-reload for config, theme, and template changes
 - structured candidates and typed backend/mode errors
 - shell-free execution for launched commands
-- Wayland and X11 support through the current windowing stack
+- Wayland via wlr-layer-shell (Sway, Hyprland, and compatible compositors) and X11
 
 ## Naming Note
 
@@ -44,11 +44,22 @@ Requirements:
 
 - Rust and Cargo
 - `fzf` installed on `PATH`
+- GTK4 system libraries (Ubuntu 22.04+: `libgtk-4-dev`; Arch: `gtk4`)
+- `gtk4-layer-shell` C library for Wayland overlay support (optional — binary works without it)
+  - Arch: `pacman -S gtk4-layer-shell`
+  - Ubuntu 24.04+: `apt install libgtk4-layer-shell-dev`
+  - Ubuntu 22.04: build from source (see `.github/scripts/install-gtk-deps.sh`)
 
 Build:
 
 ```bash
 cargo build
+```
+
+Build without layer-shell (e.g. X11-only or no Wayland compositor support):
+
+```bash
+cargo build --no-default-features --features x11
 ```
 
 Run the GUI:

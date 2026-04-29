@@ -7,8 +7,15 @@ description = "A rofi-like launcher prototype with a managed fzf backend"
 authors = ["Shreyas Manjunath <mshreyas11@gmail.com>"]
 readme = "README.md"
 
+[features]
+default = ["layer-shell", "x11"]
+layer-shell = ["dep:gtk4-layer-shell"]
+x11 = ["dep:gdk4-x11"]
+
 [dependencies]
-eframe = { version = "0.34.1", default-features = true }
+gtk4 = { version = "0.11", features = ["v4_12"] }
+gdk4-x11 = { version = "0.11", optional = true }
+gtk4-layer-shell = { version = "0.8", optional = true }
 minijinja = "2.12.0"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.9.8"

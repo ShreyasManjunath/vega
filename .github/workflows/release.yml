@@ -32,6 +32,9 @@ jobs:
       - name: Install stable Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install system dependencies
+        run: .github/scripts/install-gtk-deps.sh
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 

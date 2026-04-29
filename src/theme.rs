@@ -19,8 +19,14 @@ impl Color {
         Self { r, g, b, a: 255 }
     }
 
-    pub fn to_egui(self) -> eframe::egui::Color32 {
-        eframe::egui::Color32::from_rgba_unmultiplied(self.r, self.g, self.b, self.a)
+    pub fn to_css_color(self) -> String {
+        format!(
+            "rgba({},{},{},{:.3})",
+            self.r,
+            self.g,
+            self.b,
+            self.a as f32 / 255.0
+        )
     }
 }
 

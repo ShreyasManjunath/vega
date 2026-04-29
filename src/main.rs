@@ -39,8 +39,8 @@ fn run() -> Result<(), AppError> {
         .unwrap_or_else(|| config.behavior.default_mode.clone());
     let mode: Box<dyn Mode> = match mode_name.as_str() {
         "dmenu" => Box::new(DmenuMode::new(read_stdin()?)),
-        "cmd" | "run" => Box::new(RunMode::new()),
-        "apps" | "drun" => Box::new(DesktopMode::new()),
+        "cmd" => Box::new(RunMode::new()),
+        "apps" => Box::new(DesktopMode::new()),
         other => return Err(AppError::Usage(format!("unsupported mode `{other}`"))),
     };
 
