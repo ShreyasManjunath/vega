@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,21 +23,6 @@ jobs:
 
       - name: Run tests
         run: cargo test
-
-  release-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install system dependencies
-        run: .github/scripts/install-gtk-deps.sh
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
 
       - name: Build release binary
         run: cargo build --release
