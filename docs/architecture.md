@@ -110,7 +110,7 @@ Constraints:
 
 Current implementation:
 
-- `src/gui.rs` with GTK4 (`gtk4` crate, v4.12 features)
+- `src/gui.rs` with GTK4 (`gtk4` crate)
 - Wayland: `gtk4-layer-shell` (optional feature) sets `Layer::Overlay` with `KeyboardMode::Exclusive`; no anchors so the compositor centers the window. Guarded by GDK display type check — silently skips on X11.
 - X11: `gdk4-x11` (optional feature) calls `XMoveWindow` via raw GDK FFI after an idle callback to override WM placement
 - header row: fixed-width mode badge + search entry

@@ -58,22 +58,27 @@ Use `--debug` to print:
 
 ## System Dependencies
 
-GTK4 and gtk4-layer-shell must be installed before building.
+`vega` is a GTK4 application. You need `fzf`, GTK4 development libraries, and optional `gtk4-layer-shell` support for Wayland overlays.
 
-| Distro               | Command                                                         |
-| -------------------- | --------------------------------------------------------------- |
-| Arch                 | `pacman -S gtk4 gtk4-layer-shell`                               |
-| Ubuntu 24.10+        | `apt install libgtk-4-dev libgtk4-layer-shell-dev`              |
-| Ubuntu 22.04 / 24.04 | `apt install libgtk-4-dev` + build gtk4-layer-shell from source |
-| Fedora               | `dnf install gtk4-devel gtk4-layer-shell-devel`                 |
+| Distro                      | Command                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| Arch and similar            | `pacman -S rust fzf gtk4 gtk4-layer-shell gnu-free-fonts`                              |
+| Ubuntu, Debian, and similar | `apt install fzf libgtk-4-dev` and then install `libgtk4-layer-shell-dev` if available |
+| Fedora and similar          | `dnf install fzf gtk4-devel gtk4-layer-shell-devel`                                    |
 
-Build gtk4-layer-shell from source (Ubuntu 22.04):
+If `libgtk4-layer-shell-dev` is unavailable on your Debian or Ubuntu release, build `gtk4-layer-shell` from source:
 
 ```bash
-sudo apt install meson ninja-build libwayland-dev wayland-protocols
-git clone --depth=1 --branch v1.0.3 https://github.com/wmww/gtk4-layer-shell.git
-meson setup gtk4-layer-shell/build gtk4-layer-shell -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false -Dvapi=false --prefix=/usr
-sudo ninja -C gtk4-layer-shell/build install
+sudo apt install meson ninja-build git libwayland-dev wayland-protocols
+git clone --depth=1 --branch v1.0.3 https://github.com/wmww/gtk4-layer-shell.git /tmp/gtk4-layer-shell
+meson setup /tmp/gtk4-layer-shell/build /tmp/gtk4-layer-shell \
+  --prefix=/usr \
+  -Dexamples=false \
+  -Ddocs=false \
+  -Dtests=false \
+  -Dintrospection=false \
+  -Dvapi=false
+sudo ninja -C /tmp/gtk4-layer-shell/build install
 sudo ldconfig
 ```
 
@@ -91,14 +96,14 @@ CI runs on `ubuntu-latest`. As of April 29, 2026, GitHub Actions `ubuntu-latest`
 1. Attempts `apt install libgtk4-layer-shell-dev` (works on Ubuntu 24.10+ with universe; falls back on Ubuntu 22.04 and 24.04).
 1. On failure, builds gtk4-layer-shell v1.0.3 from source using meson + ninja with `examples`, `docs`, `tests`, `introspection`, and `vapi` all forced to boolean `false`, then runs `ldconfig`.
 
-All three CI workflows (pre-commit, build, release) call this script before any `cargo` invocation so fmt/clippy/test all compile against the full default feature set.
+All three CI workflows call this script before any `cargo` invocation so the default GTK4 feature set is available everywhere.
 
 ## Development
 
 - `pre-commit`: file hygiene checks, Markdown formatting, `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings`
 - `pre-push`: `cargo test`
 
-CI runs separate workflows for linting, build/test validation, and release automation.
+CI runs separate workflows for linting, build, and release automation. The `build` workflow runs `cargo test` and `cargo build --release` in the same job.
 
 ## Open Work
 
