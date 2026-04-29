@@ -19,8 +19,14 @@ impl Color {
         Self { r, g, b, a: 255 }
     }
 
-    pub fn to_egui(self) -> eframe::egui::Color32 {
-        eframe::egui::Color32::from_rgba_unmultiplied(self.r, self.g, self.b, self.a)
+    pub fn to_css_color(self) -> String {
+        format!(
+            "rgba({},{},{},{:.3})",
+            self.r,
+            self.g,
+            self.b,
+            self.a as f32 / 255.0
+        )
     }
 }
 
@@ -339,7 +345,7 @@ fn apply_sections(
             "input" => apply_input(theme, values, path)?,
             "result-row" => apply_result_row(theme, values, path)?,
             "status" => apply_status(theme, values, path)?,
-            "egui" => apply_egui(theme, values, path)?,
+            "typography" | "egui" => apply_typography(theme, values, path)?,
             other => {
                 return Err(ThemeError::Parse {
                     path: path.to_path_buf(),
@@ -466,7 +472,7 @@ fn apply_status(
     Ok(())
 }
 
-fn apply_egui(
+fn apply_typography(
     theme: &mut Theme,
     values: &BTreeMap<String, String>,
     path: &Path,
@@ -477,7 +483,7 @@ fn apply_egui(
             "body-font-size" => theme.body_font_size = parse_f32(value, path, key)?,
             "button-font-size" => theme.button_font_size = parse_f32(value, path, key)?,
             "small-font-size" => theme.small_font_size = parse_f32(value, path, key)?,
-            other => return unknown_property(path, "egui", other),
+            other => return unknown_property(path, "typography", other),
         }
     }
     Ok(())
@@ -735,7 +741,7 @@ status {
   error-foreground: #f38ba8;
 }
 
-egui {
+typography {
   heading-font-size: 22;
   body-font-size: 16;
   button-font-size: 16;
@@ -799,7 +805,7 @@ status {
   error-foreground: #fb4934;
 }
 
-egui {
+typography {
   heading-font-size: 22;
   body-font-size: 16;
   button-font-size: 16;

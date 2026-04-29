@@ -28,6 +28,8 @@ Current project name:
 Expected usage:
 
 - `vega -show apps`
+- `vega -show cmd`
+- `vega -show dmenu`
 
 ______________________________________________________________________
 
@@ -108,12 +110,14 @@ Constraints:
 
 Current implementation:
 
-- `src/gui.rs` with `eframe`/`egui`
-- runtime support through `winit` on both Wayland and X11
-- refined header row with fixed-width mode badge and larger input typography
+- `src/gui.rs` with GTK4 (`gtk4` crate)
+- Wayland: `gtk4-layer-shell` (optional feature) sets `Layer::Overlay` with `KeyboardMode::Exclusive`; no anchors so the compositor centers the window. Guarded by GDK display type check — silently skips on X11.
+- X11: `gdk4-x11` (optional feature) calls `XMoveWindow` via raw GDK FFI after an idle callback to override WM placement
+- header row: fixed-width mode badge + search entry
 - background query worker threads
 - generation-based stale result suppression
 - explicit cancellation of superseded in-flight queries
+- GTK4 CSS generated from `Theme` struct, applied through `CssProvider`
 
 ______________________________________________________________________
 

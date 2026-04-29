@@ -130,13 +130,15 @@ status {
   error-foreground: #f38ba8;
 }
 
-egui {
+typography {
   heading-font-size: 22;
   body-font-size: 16;
   button-font-size: 16;
   small-font-size: 12;
 }
 ```
+
+The `typography` section controls shared text sizing values. Older themes may still use `egui` as the section name; `vega` accepts that as a backward-compatible alias.
 
 Built-in themes:
 
