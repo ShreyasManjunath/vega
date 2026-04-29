@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Install GTK4 + X11/Wayland build dependencies for vega.
-# Supports Ubuntu/Debian (apt) and Arch (pacman).
-# On Ubuntu releases without libgtk4-layer-shell-dev (including 22.04 and 24.04),
-# gtk4-layer-shell is built from source as a fallback.
 set -euo pipefail
+
+GTK4_LAYER_SHELL_VERSION="${GTK4_LAYER_SHELL_VERSION:-v1.0.3}"
+GTK4_LAYER_SHELL_DIR="/tmp/gtk4-layer-shell"
 
 if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update -q
+
     sudo apt-get install -y \
         pkg-config \
         build-essential \
         git \
+        meson \
+        ninja-build \
         libglib2.0-dev \
         libgtk-4-dev \
         libwayland-dev \
@@ -23,24 +25,37 @@ if command -v apt-get >/dev/null 2>&1; then
         libxinerama-dev \
         libxcursor-dev \
         gobject-introspection \
+        libgirepository1.0-dev \
         valac
+
     if sudo apt-get install -y libgtk4-layer-shell-dev >/dev/null 2>&1; then
         echo "gtk4-layer-shell installed via apt"
     else
-        echo "libgtk4-layer-shell-dev not available via apt; building gtk4-layer-shell from source"
-        sudo apt-get install -y meson ninja-build
+        echo "libgtk4-layer-shell-dev not available via apt; building from source"
 
-        git clone --depth=1 --branch v1.0.3 \
-            https://github.com/wmww/gtk4-layer-shell.git /tmp/gtk4-layer-shell
+        rm -rf "$GTK4_LAYER_SHELL_DIR"
 
-        meson setup /tmp/gtk4-layer-shell/build /tmp/gtk4-layer-shell \
-            -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false --prefix=/usr
+        git clone --depth=1 --branch "$GTK4_LAYER_SHELL_VERSION" \
+            https://github.com/wmww/gtk4-layer-shell.git \
+            "$GTK4_LAYER_SHELL_DIR"
 
-        sudo ninja -C /tmp/gtk4-layer-shell/build install
+        meson setup "$GTK4_LAYER_SHELL_DIR/build" "$GTK4_LAYER_SHELL_DIR" \
+            --prefix=/usr \
+            -Dexamples=false \
+            -Ddocs=false \
+            -Dtests=false \
+            -Dintrospection=false \
+            -Dvapi=false
+
+        sudo ninja -C "$GTK4_LAYER_SHELL_DIR/build" install
         sudo ldconfig
     fi
+
+    pkg-config --modversion gtk4-layer-shell-0
+
 elif command -v pacman >/dev/null 2>&1; then
     sudo pacman -Syu --noconfirm
+
     sudo pacman -S --needed --noconfirm \
         base-devel \
         pkgconf \
@@ -59,7 +74,11 @@ elif command -v pacman >/dev/null 2>&1; then
         libxcursor \
         gobject-introspection \
         vala
+
+    pkgconf --modversion gtk4-layer-shell-0
+
 else
-    echo "Unsupported package manager. Please install GTK4, gtk4-layer-shell, Wayland, X11, and pkg-config development packages manually."
+    echo "Unsupported package manager."
+    echo "Install GTK4, gtk4-layer-shell, Wayland, X11, and pkg-config development packages manually."
     exit 1
 fi

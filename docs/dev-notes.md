@@ -72,7 +72,7 @@ Build gtk4-layer-shell from source (Ubuntu 22.04):
 ```bash
 sudo apt install meson ninja-build libwayland-dev wayland-protocols
 git clone --depth=1 --branch v1.0.3 https://github.com/wmww/gtk4-layer-shell.git
-meson setup gtk4-layer-shell/build gtk4-layer-shell -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false --prefix=/usr
+meson setup gtk4-layer-shell/build gtk4-layer-shell -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false -Dvapi=false --prefix=/usr
 sudo ninja -C gtk4-layer-shell/build install
 sudo ldconfig
 ```
@@ -89,7 +89,7 @@ CI runs on `ubuntu-latest`. As of April 29, 2026, GitHub Actions `ubuntu-latest`
 
 1. Installs `libgtk-4-dev` and `pkg-config` via apt (available on 22.04+).
 1. Attempts `apt install libgtk4-layer-shell-dev` (works on Ubuntu 24.10+ with universe; falls back on Ubuntu 22.04 and 24.04).
-1. On failure, builds gtk4-layer-shell v1.0.3 from source using meson + ninja with boolean `false` Meson options and runs `ldconfig`.
+1. On failure, builds gtk4-layer-shell v1.0.3 from source using meson + ninja with `examples`, `docs`, `tests`, `introspection`, and `vapi` all forced to boolean `false`, then runs `ldconfig`.
 
 All three CI workflows (pre-commit, build, release) call this script before any `cargo` invocation so fmt/clippy/test all compile against the full default feature set.
 
