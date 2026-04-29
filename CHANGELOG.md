@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/ShreyasManjunath/vega/compare/v1.1.0...v1.2.0) (2026-04-29)
+
+### Features
+
+- **ui:** switch to gtk4 from eframe ([#8](https://github.com/ShreyasManjunath/vega/issues/8)) ([9f975be](https://github.com/ShreyasManjunath/vega/commit/9f975be048515adf07022a6a5543f4ce8fd75b3d)), closes [#9](https://github.com/ShreyasManjunath/vega/issues/9)
+
 ## [1.1.0](https://github.com/ShreyasManjunath/vega/compare/v1.0.1...v1.1.0) (2026-04-29)
 
 ### Features
