@@ -60,19 +60,19 @@ Use `--debug` to print:
 
 GTK4 and gtk4-layer-shell must be installed before building.
 
-| Distro        | Command                                                         |
-| ------------- | --------------------------------------------------------------- |
-| Arch          | `pacman -S gtk4 gtk4-layer-shell`                               |
-| Ubuntu 24.04+ | `apt install libgtk-4-dev libgtk4-layer-shell-dev`              |
-| Ubuntu 22.04  | `apt install libgtk-4-dev` + build gtk4-layer-shell from source |
-| Fedora        | `dnf install gtk4-devel gtk4-layer-shell-devel`                 |
+| Distro               | Command                                                         |
+| -------------------- | --------------------------------------------------------------- |
+| Arch                 | `pacman -S gtk4 gtk4-layer-shell`                               |
+| Ubuntu 24.10+        | `apt install libgtk-4-dev libgtk4-layer-shell-dev`              |
+| Ubuntu 22.04 / 24.04 | `apt install libgtk-4-dev` + build gtk4-layer-shell from source |
+| Fedora               | `dnf install gtk4-devel gtk4-layer-shell-devel`                 |
 
 Build gtk4-layer-shell from source (Ubuntu 22.04):
 
 ```bash
 sudo apt install meson ninja-build libwayland-dev wayland-protocols
 git clone --depth=1 --branch v1.0.3 https://github.com/wmww/gtk4-layer-shell.git
-meson setup gtk4-layer-shell/build gtk4-layer-shell -Dexamples=false -Ddocs=false -Dtests=false --prefix=/usr
+meson setup gtk4-layer-shell/build gtk4-layer-shell -Dexamples=false -Ddocs=false -Dtests=false -Dintrospection=false -Dvapi=false --prefix=/usr
 sudo ninja -C gtk4-layer-shell/build install
 sudo ldconfig
 ```
@@ -85,11 +85,11 @@ cargo build --no-default-features --features x11
 
 ## CI
 
-CI runs on `ubuntu-latest` (22.04+). The install script at `.github/scripts/install-gtk-deps.sh`:
+CI runs on `ubuntu-latest`. As of April 29, 2026, GitHub Actions `ubuntu-latest` resolves to Ubuntu 24.04, where `libgtk4-layer-shell-dev` is still unavailable, so the source-build fallback is the normal path. The install script at `.github/scripts/install-gtk-deps.sh`:
 
 1. Installs `libgtk-4-dev` and `pkg-config` via apt (available on 22.04+).
-1. Attempts `apt install libgtk4-layer-shell-dev` (succeeds on Ubuntu 24.04+ with universe; fails silently on 22.04).
-1. On failure, builds gtk4-layer-shell v1.0.3 from source using meson + ninja and runs `ldconfig`.
+1. Attempts `apt install libgtk4-layer-shell-dev` (works on Ubuntu 24.10+ with universe; falls back on Ubuntu 22.04 and 24.04).
+1. On failure, builds gtk4-layer-shell v1.0.3 from source using meson + ninja with `examples`, `docs`, `tests`, `introspection`, and `vapi` all forced to boolean `false`, then runs `ldconfig`.
 
 All three CI workflows (pre-commit, build, release) call this script before any `cargo` invocation so fmt/clippy/test all compile against the full default feature set.
 

@@ -606,7 +606,9 @@ fn scroll_into_view(scroll: &ScrolledWindow, list: &ListBox, row: &ListBoxRow) {
 }
 
 fn repopulate(list: &ListBox, candidates: &[Candidate], selected: usize, templates: &TemplateSet) {
-    list.remove_all();
+    while let Some(row) = list.row_at_index(0) {
+        list.remove(&row);
+    }
 
     for (i, candidate) in candidates.iter().enumerate() {
         let row_box = GtkBox::new(Orientation::Horizontal, 0);
@@ -641,7 +643,7 @@ fn repopulate(list: &ListBox, candidates: &[Candidate], selected: usize, templat
 // ── CSS ───────────────────────────────────────────────────────────────────────
 
 fn refresh_css(provider: &CssProvider, theme: &Theme) {
-    provider.load_from_string(&build_css(theme));
+    provider.load_from_data(&build_css(theme));
 }
 
 fn build_css(t: &Theme) -> String {
