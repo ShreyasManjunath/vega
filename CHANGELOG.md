@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/ShreyasManjunath/vega/compare/v1.0.1...v1.1.0) (2026-04-29)
+
+### Features
+
+- add config and theming system ([#7](https://github.com/ShreyasManjunath/vega/issues/7)) ([bc26f60](https://github.com/ShreyasManjunath/vega/commit/bc26f603ec68c135c0c705c9c25a8f9c34a9052e))
+
 ## [1.0.1](https://github.com/ShreyasManjunath/vega/compare/v1.0.0...v1.0.1) (2026-04-27)
 
 ### Bug Fixes
