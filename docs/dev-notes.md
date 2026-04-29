@@ -3,7 +3,10 @@
 ## Behavior
 
 - The GUI is built in `src/gui.rs` with `eframe`/`egui`.
+- Configuration is loaded from the XDG config directory and merged over built-in defaults.
+- Theme files use a CSS-like section/property syntax, and templates use MiniJinja.
 - Query execution is asynchronous and uses generation checks plus explicit cancellation to suppress stale results.
+- The GUI hot-reloads config, theme, and template changes by polling the config tree.
 - The runtime stack works on both Wayland and X11 through `winit`.
 - The result list supports hover highlight, single-click selection, and double-click execution.
 - Non-interactive mode reuses the same backend path as the GUI and can either print or execute the first match.
@@ -57,7 +60,6 @@ CI runs separate workflows for linting, build/test validation, and release autom
 
 ## Open Work
 
-- config loading and external theme support
 - broader integration tests, especially around fake `fzf` processes and desktop-entry edge cases
 - benchmarking before any move to a persistent `fzf` process
 - eventual decomposition of `src/gui.rs` into the fuller module structure described in `docs/architecture.md`

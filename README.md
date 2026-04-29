@@ -11,6 +11,10 @@ The GUI runs through `eframe`/`egui` on top of `winit`, with Wayland and X11 sup
 - GUI launcher with keyboard navigation, hover feedback, click selection, and async query handling
 - `apps`, `cmd`, and `dmenu` modes
 - `fzf` integration through `std::process::Command`
+- layered XDG configuration with TOML parsing through `serde`
+- CSS-like theming with built-in `catppuccin-mocha` and `gruvbox-dark` themes
+- optional MiniJinja templates for badge, row, and empty-state rendering
+- hot-reload for config, theme, and template changes
 - structured candidates and typed backend/mode errors
 - shell-free execution for launched commands
 - Wayland and X11 support through the current windowing stack
@@ -65,6 +69,27 @@ printf 'Firefox\nFiles\nTerminal\n' | cargo run -- -show dmenu --query fire
 
 Use `--execute` to launch the first non-interactive match instead of printing it.
 
+## Configuration
+
+`vega` reads user settings from the XDG config directory:
+
+- `~/.config/vega/config.toml`
+- `~/.config/vega/themes/<name>.theme`
+- `~/.config/vega/templates/<template-name>.*`
+
+Built-in themes:
+
+- `catppuccin-mocha`
+- `gruvbox-dark`
+
+Configuration is layered as built-in defaults followed by user overrides. The GUI hot-reloads the active config file, active theme file chain, and top-level template files by polling the XDG config directory.
+
+User theme packs can be cloned directly into `~/.config/vega/themes/`. `vega` will resolve:
+
+- direct files like `my-theme.theme`
+- repo-style directories with entry files such as `vega.theme`, `theme.theme`, or `index.theme`
+- nested theme names such as `catppuccin/mocha`
+
 ## Development
 
 Common commands:
@@ -108,5 +133,6 @@ Third-party dependency licensing is summarized in [THIRD_PARTY_NOTICES.md](./THI
 Documentation:
 
 - [Architecture](./docs/architecture.md)
+- [Configuration](./docs/configuration.md)
 - [Notes](./docs/dev-notes.md)
 - [fzf Backend](./docs/fzf-backend.md)
