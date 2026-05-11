@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/ShreyasManjunath/vega/compare/v1.2.0...v1.2.1) (2026-05-11)
+
+### Bug Fixes
+
+- reject env-based shell interpreter bypass in desktop Exec ([#13](https://github.com/ShreyasManjunath/vega/issues/13)) ([b06ae06](https://github.com/ShreyasManjunath/vega/commit/b06ae06d48791e80a4e2351b590306788c97754b))
+
 ## [1.2.0](https://github.com/ShreyasManjunath/vega/compare/v1.1.0...v1.2.0) (2026-04-29)
 
 ### Features
