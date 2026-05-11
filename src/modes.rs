@@ -300,7 +300,7 @@ fn reject_shell_interpreter(program: &str) -> Result<(), ModeError> {
     if matches!(
         name,
         "sh" | "bash" | "dash" | "zsh" | "fish" | "csh" | "tcsh" | "env"
-        ) {
+    ) {
         return Err(ModeError::Execution(format!(
             "desktop Exec starts shell interpreter `{name}`, which is unsupported"
         )));
