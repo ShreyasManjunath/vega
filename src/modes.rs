@@ -299,7 +299,7 @@ fn reject_shell_interpreter(program: &str) -> Result<(), ModeError> {
         .unwrap_or(program);
     if matches!(
         name,
-        "sh" | "bash" | "dash" | "zsh" | "fish" | "csh" | "tcsh"
+        "sh" | "bash" | "dash" | "zsh" | "fish" | "csh" | "tcsh" | "env"
     ) {
         return Err(ModeError::Execution(format!(
             "desktop Exec starts shell interpreter `{name}`, which is unsupported"
@@ -414,5 +414,10 @@ mod tests {
     fn rejects_shell_interpreters_in_desktop_exec() {
         assert!(parse_desktop_exec("sh -c 'x; y'").is_err());
         assert!(parse_desktop_exec("/bin/bash -lc firefox").is_err());
+    }
+    #[test]
+    fn rejects_env_based_shell_bypass() {
+        assert!(parse_desktop_exec("env sh -c 'x; y'").is_err());
+        assert!(parse_desktop_exec("env bash -c 'x'").is_err());
     }
 }
