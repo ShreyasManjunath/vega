@@ -1,2 +1,8 @@
 /target
 .codex
+
+# Graphify
+graphify-out/
+graphify/
+**/graphify/cache/
+.graphify_python
